@@ -11,7 +11,7 @@ fn part1(input: &str) -> String {
     let mut sum = 0;
     let mut game_map: HashMap<i32, i32> = HashMap::new();
     let mut game_number = 0;
-    lines.enumerate().for_each(|(i, line)| {
+    lines.for_each(|line| {
         let line_split = line.split(": ").collect::<Vec<&str>>();
         let maybe_game_number = line_split[0].split(" ").collect::<Vec<&str>>();
         game_number = maybe_game_number.last().unwrap().parse::<i32>().unwrap();
