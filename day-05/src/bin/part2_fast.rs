@@ -1,3 +1,5 @@
+use rayon::prelude::*;
+
 fn main() {
     let input = include_str!("input1.txt");
     let answer = part1(input);
@@ -15,20 +17,9 @@ fn part1(input: &str) -> String {
 
     let mut seed_numbers: Vec<i64> = vec![];
 
-    for (i, seed_or_range) in seed_numbers_and_ranges.iter().enumerate() {
-        if i % 2 == 0 {
-            let seed = seed_or_range.clone();
-            let range = seed_numbers_and_ranges[i + 1];
-            let end_of_range = seed + range - 1;
-            for j in seed..=end_of_range {
-                seed_numbers.push(j);
-            }
-        }
-    }
-
     let maps_as_string = seeds_and_maps.iter().skip(1).collect::<Vec<&&str>>();
     let maps = maps_as_string
-        .iter()
+        .into_par_iter()
         .map(|m| {
             m.split("\n")
                 .skip(1)
@@ -42,20 +33,34 @@ fn part1(input: &str) -> String {
         })
         .collect::<Vec<Vec<Vec<i64>>>>();
 
-    let mut targets: Vec<i64> = vec![];
-    for seed in seed_numbers {
-        let mut target = seed;
-        for map in maps.clone() {
-            println!("map {:?}", map);
-            target = get_target_for_source(target, &map);
-            println!("seed {} target {}", seed, target);
-        }
-        targets.push(target);
-    }
+    let min = seed_numbers_and_ranges
+        .clone()
+        .into_par_iter()
+        .enumerate()
+        .step_by(2)
+        .map(|(i, seed_or_range)| {
+            let seed = seed_or_range.clone();
+            let range = seed_numbers_and_ranges[i + 1];
+            let end_of_range = seed + range - 1;
+            let range = seed..=end_of_range;
+            let min_for_range = range
+                .into_par_iter()
+                .map(|j| {
+                    let mut target = j;
+                    for map in maps.clone() {
+                        target = get_target_for_source(target, &map);
+                    }
+                    target
+                })
+                .min()
+                .unwrap();
 
-    let smallest = targets.iter().min().unwrap();
+            min_for_range
+        })
+        .min()
+        .unwrap();
 
-    smallest.to_string()
+    min.to_string()
 }
 
 fn get_target_for_source(source: i64, map: &Vec<Vec<i64>>) -> i64 {
